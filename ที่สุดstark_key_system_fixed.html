@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STARK KEY SYSTEM</title>
+<style>
+body{margin:0;min-height:100vh;background:#070707;color:white;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:min(460px,100%);background:#111;border:1px solid #450909;border-radius:18px;padding:28px;box-shadow:0 0 35px #300000}
+h1{text-align:center;margin:0 0 8px}.sub{text-align:center;color:#999;margin-bottom:24px}
+label{display:block;margin-bottom:8px;font-weight:bold}
+select,button{width:100%;height:48px;border-radius:10px;font-size:16px}
+select{background:#191919;color:white;border:1px solid #444;padding:0 12px;margin-bottom:14px}
+button{border:0;background:#b00000;color:white;font-weight:bold;cursor:pointer;margin-bottom:12px}
+button:hover{background:#d00000}.copy{background:#222}.copy:hover{background:#333}
+.key{background:#080808;border:1px dashed #650909;border-radius:10px;padding:15px;text-align:center;font-family:monospace;font-size:17px;word-break:break-all}
+.info{text-align:center;color:#aaa;font-size:14px;min-height:20px;margin:12px 0}
+.small{text-align:center;color:#777;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>STARK KEY SYSTEM</h1>
+<div class="sub">สร้างคีย์และกำหนดอายุคีย์</div>
+<label>เลือกเวลาหมดอายุ</label>
+<select id="duration">
+<option value="3600">1 ชั่วโมง</option>
+<option value="86400">1 วัน</option>
+<option value="259200">3 วัน</option>
+<option value="604800">7 วัน</option>
+<option value="864000">10 วัน</option>
+<option value="2592000">30 วัน</option>
+<option value="permanent">ถาวร</option>
+</select>
+<button onclick="generateKey()">รับคีย์</button>
+<div id="key" class="key">ยังไม่มีคีย์</div>
+<div id="info" class="info"></div>
+<button class="copy" onclick="copyKey()">คัดลอกคีย์</button>
+<div class="small">เวอร์ชันนี้เป็นระบบฝั่งหน้าเว็บ (Demo)<br>หากต้องการตรวจสอบคีย์จริง ควรใช้ Backend/Database</div>
+</div>
+<script>
+let currentKey="",timer;
+function randomPart(n){let c="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",s="";for(let i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+function generateKey(){
+clearInterval(timer);
+currentKey="STARK-"+randomPart(5)+"-"+randomPart(5)+"-"+randomPart(5);
+document.getElementById("key").textContent=currentKey;
+let v=document.getElementById("duration").value;
+if(v==="permanent"){document.getElementById("info").textContent="คีย์นี้เป็นแบบถาวร";return}
+let end=Date.now()+Number(v)*1000;
+function update(){
+let left=Math.max(0,end-Date.now());
+if(!left){clearInterval(timer);document.getElementById("info").textContent="คีย์หมดอายุแล้ว";return}
+let s=Math.floor(left/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),sec=s%60;
+document.getElementById("info").textContent="เหลือเวลา: "+(d?d+" วัน ":"")+(h?h+" ชม. ":"")+(m?m+" นาที ":"")+sec+" วินาที";
+}
+update();timer=setInterval(update,1000);
+}
+async function copyKey(){
+  if(!currentKey){
+    alert("กรุณากดรับคีย์ก่อน");
+    return;
+  }
+
+  // วิธีที่ 1: Clipboard API (รองรับเบราว์เซอร์สมัยใหม่)
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(currentKey);
+      alert("คัดลอกคีย์แล้ว");
+      return;
+    }
+  }catch(e){}
+
+  // วิธีที่ 2: รองรับ Android/เบราว์เซอร์ที่บล็อก Clipboard API
+  try{
+    const area=document.createElement("textarea");
+    area.value=currentKey;
+    area.setAttribute("readonly","");
+    area.style.position="fixed";
+    area.style.left="-9999px";
+    area.style.top="0";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0,area.value.length);
+
+    const ok=document.execCommand("copy");
+    document.body.removeChild(area);
+
+    if(ok){
+      alert("คัดลอกคีย์แล้ว");
+      return;
+    }
+  }catch(e){}
+
+  // วิธีที่ 3: หากมือถือ/เบราว์เซอร์ไม่อนุญาต ให้เลือกข้อความเอง
+  const answer=confirm("เบราว์เซอร์ไม่อนุญาตให้คัดลอกอัตโนมัติ\nกด ตกลง เพื่อเปิดคีย์สำหรับคัดลอกเอง");
+  if(answer){
+    prompt("กดค้างที่คีย์ แล้วเลือก 'คัดลอก'",currentKey);
+  }
+}
+</script>
+</body>
+</html>
